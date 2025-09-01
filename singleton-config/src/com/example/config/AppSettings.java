@@ -1,0 +1,52 @@
+package com.example.config;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Properties;
+
+/**
+ * Thread-safe, reflection/serialization-safe Singleton for app settings.
+ */
+public final class AppSettings implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private static volatile AppSettings instance;
+
+    private final Properties props = new Properties();
+
+    private AppSettings() {
+        if (instance != null) {
+            throw new IllegalStateException("Use getInstance() to access the singleton");
+        }
+    }
+
+    public static AppSettings getInstance() {
+        if (instance == null) { 
+            synchronized (AppSettings.class) {
+                if (instance == null) { 
+                    instance = new AppSettings();
+                }
+            }
+        }
+        return instance;
+    }
+
+    public synchronized void loadFromFile(Path file) {
+        try (InputStream in = Files.newInputStream(file)) {
+            props.clear();
+            props.load(in);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public String get(String key) {
+        return props.getProperty(key);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return getInstance();
+    }
+}
